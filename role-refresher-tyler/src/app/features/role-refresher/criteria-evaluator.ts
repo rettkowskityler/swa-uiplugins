@@ -135,8 +135,8 @@ export function evaluateCriteria(
   }
 
   const reason = matches
-    ? `✔ ${contextLabel} ${op.toLowerCase()} "${expectedValue}" (actual: "${actualStr || 'empty'}")`
-    : `✖ ${contextLabel} expected ${op.toLowerCase()} "${expectedValue}" (actual: "${actualStr || 'empty'}")`;
+    ? `MATCH: ${contextLabel} ${op.toLowerCase()} "${expectedValue}" (actual: "${actualStr || 'empty'}")`
+    : `MISMATCH: ${contextLabel} expected ${op.toLowerCase()} "${expectedValue}" (actual: "${actualStr || 'empty'}")`;
 
   return { matches, reasons: [reason] };
 }

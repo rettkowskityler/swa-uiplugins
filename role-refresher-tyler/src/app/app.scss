@@ -42,7 +42,18 @@
     margin-bottom: 0.875rem;
 
     .brand-icon {
-      font-size: 1.4rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.5rem;
+      height: 1.5rem;
+      color: #4f46e5;
+      flex-shrink: 0;
+
+      svg {
+        width: 100%;
+        height: 100%;
+      }
     }
 
     .brand-title {
@@ -76,7 +87,17 @@
     transition: all 0.2s ease;
 
     .nav-icon {
-      font-size: 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.15rem;
+      height: 1.15rem;
+      flex-shrink: 0;
+
+      svg {
+        width: 100%;
+        height: 100%;
+      }
     }
 
     &:hover {

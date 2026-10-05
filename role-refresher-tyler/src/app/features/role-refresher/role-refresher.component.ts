@@ -307,7 +307,7 @@ export class RoleRefresherComponent {
         if (role.membershipType === 'IDENTITY_LIST') {
           // Static membership
           matchesCriteria = isCurrentlyAssigned;
-          reasons = [isCurrentlyAssigned ? '✔ Listed in static membership list' : '✖ Not in static membership list'];
+          reasons = [isCurrentlyAssigned ? 'MATCH: Listed in static membership list' : 'MISMATCH: Not in static membership list'];
         } else {
           const evalRes = evaluateCriteria(role.criteria as CriteriaNode, idData.attributes || {}, idAccounts);
           matchesCriteria = evalRes.matches;
@@ -455,6 +455,14 @@ export class RoleRefresherComponent {
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase())
       .join('');
+  }
+
+  protected isReasonFail(reason: string): boolean {
+    return reason.startsWith('MISMATCH') || reason.startsWith('FAIL');
+  }
+
+  protected formatReasonText(reason: string): string {
+    return reason.replace(/^(MATCH|MISMATCH|PASS|FAIL):\s*/, '');
   }
 
   private formatError(err: unknown): string {

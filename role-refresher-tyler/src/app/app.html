@@ -2,24 +2,48 @@
   <div class="shell-body">
     <nav class="shell-sidenav">
       <div class="shell-sidenav__brand">
-        <span class="brand-icon">⚡</span>
+        <span class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+        </span>
         <span class="brand-title">Role Refresher</span>
       </div>
 
       <ul class="shell-sidenav__list">
         <li>
           <a routerLink="/" routerLinkActive="shell-sidenav__link--active" [routerLinkActiveOptions]="{ exact: true }" class="shell-sidenav__link">
-            <span class="nav-icon">🎯</span> Apply Changes Simulator
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="22" y1="12" x2="18" y2="12"/>
+                <line x1="6" y1="12" x2="2" y2="12"/>
+                <line x1="12" y1="6" x2="12" y2="2"/>
+                <line x1="12" y1="22" x2="12" y2="18"/>
+              </svg>
+            </span>
+            <span>Apply Changes Simulator</span>
           </a>
         </li>
         <li>
           <a routerLink="/workflows" routerLinkActive="shell-sidenav__link--active" class="shell-sidenav__link">
-            <span class="nav-icon">🚀</span> Workflows
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+            </span>
+            <span>Workflows</span>
           </a>
         </li>
         <li>
           <a routerLink="/api-examples" routerLinkActive="shell-sidenav__link--active" class="shell-sidenav__link">
-            <span class="nav-icon">📡</span> SDK Reference
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+            </span>
+            <span>SDK Reference</span>
           </a>
         </li>
       </ul>

@@ -32,26 +32,47 @@
   <!-- Error Alert -->
   @if (error()) {
     <div class="alert-box alert-box--danger">
-      <div class="alert-box__icon">⚠️</div>
+      <div class="alert-box__icon">
+        <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
       <div class="alert-box__content">
         <strong>Error occurred:</strong>
         <p>{{ error() }}</p>
       </div>
-      <button class="alert-box__close" (click)="error.set('')">✕</button>
+      <button class="alert-box__close" (click)="error.set('')" aria-label="Dismiss error">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
   }
 
   <!-- Task Execution Success Banner -->
   @if (lastProcessResult(); as res) {
     <div class="alert-box alert-box--success">
-      <div class="alert-box__icon">🎉</div>
+      <div class="alert-box__icon">
+        <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
       <div class="alert-box__content">
         <strong>Targeted Identity Processing Dispatched Successfully!</strong>
         <p>
           Job ID: <code>{{ res.taskId }}</code> &middot; Recalculating access for <strong>{{ res.count }}</strong> identity/identities &middot; Dispatched at {{ res.timestamp }}
         </p>
       </div>
-      <button class="alert-box__close" (click)="lastProcessResult.set(null)">✕</button>
+      <button class="alert-box__close" (click)="lastProcessResult.set(null)" aria-label="Dismiss message">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
   }
 
@@ -185,7 +206,14 @@
         </div>
         <p class="metric-card__hint">
           @if (loseCount() > 0) {
-            <strong class="text-danger">⚠️ Deprovisioning Risk:</strong> Users with role who fail criteria
+            <strong class="text-danger inline-alert-title">
+              <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              Deprovisioning Risk:
+            </strong> Users with role who fail criteria
           } @else {
             Zero deprovisioning detected
           }
@@ -228,7 +256,11 @@
     <!-- STEP 3: Action Execution Bar -->
     <div class="action-bar">
       <div class="action-bar__info">
-        <span class="action-bar__icon">⚡</span>
+        <span class="action-bar__icon">
+          <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+        </span>
         <div>
           <h3 class="action-bar__title">Targeted Identity Refresh</h3>
           <p class="action-bar__desc">
@@ -312,7 +344,12 @@
             (ngModelChange)="searchQuery.set($event)"
           />
           @if (searchQuery()) {
-            <button class="search-clear" (click)="searchQuery.set('')">✕</button>
+            <button class="search-clear" (click)="searchQuery.set('')" aria-label="Clear search">
+              <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
           }
         </div>
       </div>
@@ -420,8 +457,9 @@
               <td>
                 <div class="reasons-list">
                   @for (r of item.reasons; track r) {
-                    <div class="reason-item" [class.reason-item--fail]="r.startsWith('✖')">
-                      {{ r }}
+                    <div class="reason-item" [class.reason-item--fail]="isReasonFail(r)">
+                      <span class="reason-item__tag">{{ isReasonFail(r) ? 'MISMATCH' : 'MATCH' }}</span>
+                      <span class="reason-item__text">{{ formatReasonText(r) }}</span>
                     </div>
                   }
                 </div>
@@ -443,7 +481,12 @@
             <tr>
               <td colspan="8" class="empty-cell">
                 <div class="empty-state">
-                  <span class="empty-state__icon">🔍</span>
+                  <div class="empty-state__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="11" cy="11" r="8"/>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                  </div>
                   <h4>No identities match the current view</h4>
                   <p>Try switching filter tabs or clearing your search query.</p>
                 </div>
