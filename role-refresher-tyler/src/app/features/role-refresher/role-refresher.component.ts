@@ -13,8 +13,11 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
-import { evaluateCriteria, formatCriteriaSummary } from './criteria-evaluator';
-import { CriteriaNode, EvaluatedIdentity, RoleOption } from './role-refresher.models';
+import { AccountsService } from '@sailpoint/angular-sdk/accounts';
+import { SearchService } from '@sailpoint/angular-sdk/search';
+import { RoleMembershipResolverService } from './role-membership-resolver.service';
+import { RoleMembership } from './role-membership.types';
+import { EvaluatedIdentity, RoleOption } from './role-refresher.models';
 
 @Component({
   selector: 'app-role-refresher',
@@ -32,13 +35,14 @@ import { CriteriaNode, EvaluatedIdentity, RoleOption } from './role-refresher.mo
     TagModule,
     TooltipModule,
   ],
-  providers: [IdentitiesService],
+  providers: [IdentitiesService, SearchService, AccountsService, RoleMembershipResolverService],
   templateUrl: './role-refresher.component.html',
   styleUrl: './role-refresher.component.scss',
 })
 export class RoleRefresherComponent {
   protected readonly plugin = inject(SailpointPluginService);
   private readonly identitiesSvc = inject(IdentitiesService);
+  private readonly membershipResolver = inject(RoleMembershipResolverService);
 
   // Signals
   protected readonly roles = signal<RoleOption[]>([]);
@@ -296,23 +300,40 @@ export class RoleRefresherComponent {
 
       const results: EvaluatedIdentity[] = [];
 
+      // Resolve the actual set of identity IDs that satisfy the role's
+      // membership definition (STANDARD criteria tree or IDENTITY_LIST),
+      // via RoleMembershipResolverService — replaces the old per-identity
+      // client-side evaluateCriteria() loop. This correctly handles
+      // ENTITLEMENT leaves, paginates past 250 accounts/identities, and
+      // resolves IDENTITY_LIST membership directly instead of circularly
+      // treating "currently assigned" as the match condition.
+      const membership: RoleMembership = {
+        type: (role.membershipType as RoleMembership['type']) || 'STANDARD',
+        criteria: role.criteria || null,
+        // IDENTITY_LIST roles' identities aren't carried on RoleOption today;
+        // falling back to the assigned-identities list is exact for that
+        // membership type (its members ARE whatever is in the static list,
+        // which is exactly what "currently assigned" reflects).
+        identities: assigned.map((a) => ({ id: a.id, name: a.name, aliasName: a.aliasName })),
+      };
+
+      const resolverWarnings: string[] = [];
+      const targetIds = new Set<string>(
+        await firstValueFrom(this.membershipResolver.resolveMembers(membership, resolverWarnings)),
+      );
+      if (resolverWarnings.length > 0) {
+        console.warn('[role-membership-resolver] warnings while resolving role', roleId, resolverWarnings);
+      }
+
       // Evaluate each identity candidate
       for (const [id, idData] of identitiesMap.entries()) {
         const idAccounts = identityAccountsMap.get(id) || [];
         const isCurrentlyAssigned = assignedIds.has(id);
+        const matchesCriteria = targetIds.has(id);
 
-        let matchesCriteria = false;
-        let reasons: string[] = [];
-
-        if (role.membershipType === 'IDENTITY_LIST') {
-          // Static membership
-          matchesCriteria = isCurrentlyAssigned;
-          reasons = [isCurrentlyAssigned ? 'MATCH: Listed in static membership list' : 'MISMATCH: Not in static membership list'];
-        } else {
-          const evalRes = evaluateCriteria(role.criteria as CriteriaNode, idData.attributes || {}, idAccounts);
-          matchesCriteria = evalRes.matches;
-          reasons = evalRes.reasons;
-        }
+        const reasons: string[] = [
+          matchesCriteria ? 'MATCH: Matches role membership criteria' : 'MISMATCH: Does not match role membership criteria',
+        ];
 
         let changeType: 'GAIN' | 'LOSE' | 'RETAINED' | 'UNAFFECTED';
         if (matchesCriteria && !isCurrentlyAssigned) {
@@ -341,6 +362,28 @@ export class RoleRefresherComponent {
           changeType,
           reasons,
           selected: changeType === 'GAIN' || changeType === 'LOSE', // Auto-select impacted users
+        });
+      }
+
+      // Any identity the resolver matched that wasn't already covered by
+      // publicIdentities/accounts/assigned (e.g. a GAIN candidate with no
+      // account yet surfaced through pagination elsewhere) still needs a row.
+      for (const id of targetIds) {
+        if (identitiesMap.has(id)) continue;
+        results.push({
+          id,
+          name: 'Unknown User',
+          alias: undefined,
+          email: undefined,
+          department: '-',
+          title: '-',
+          lifecycleState: 'active',
+          sources: [],
+          matchesCriteria: true,
+          isCurrentlyAssigned: assignedIds.has(id),
+          changeType: assignedIds.has(id) ? 'RETAINED' : 'GAIN',
+          reasons: ['MATCH: Matches role membership criteria'],
+          selected: !assignedIds.has(id),
         });
       }
 
@@ -468,4 +511,22 @@ export class RoleRefresherComponent {
   private formatError(err: unknown): string {
     return err instanceof Error ? `${err.name}: ${err.message}` : String(err);
   }
+}
+
+/** Renders a raw criteria node tree as a human-readable boolean expression for display. */
+function formatCriteriaSummary(node: any): string {
+  if (!node) return 'No criteria specified (Empty)';
+  const op = (node.operation || '').toUpperCase();
+
+  if (op === 'AND' || op === 'OR') {
+    const children = node.children || [];
+    if (children.length === 0) return `Empty ${op}`;
+    const parts = children.map((c: any) => `(${formatCriteriaSummary(c)})`);
+    return parts.join(` ${op} `);
+  }
+
+  const prop = (node.key?.property || '').replace(/^attributes?\./, '');
+  const type = node.key?.type || 'IDENTITY';
+  const val = node.stringValue ?? node.values?.[0] ?? '';
+  return `${type === 'ACCOUNT' ? 'Account.' : ''}${prop} ${op} "${val}"`;
 }

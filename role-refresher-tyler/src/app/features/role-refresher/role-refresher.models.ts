@@ -26,17 +26,6 @@ export interface EvaluatedIdentity {
   selected?: boolean;
 }
 
-export interface CriteriaNode {
-  operation: string;
-  key?: {
-    type: 'IDENTITY' | 'ACCOUNT' | 'ENTITLEMENT';
-    property: string;
-    sourceId?: string | null;
-  } | null;
-  stringValue?: string | null;
-  children?: CriteriaNode[] | null;
-}
-
 export interface ProcessIdentitiesResponse {
   type: string;
   id: string;
