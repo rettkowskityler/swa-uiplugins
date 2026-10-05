@@ -37,3 +37,7 @@ bazel-out/
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# CLI Search outputs
+search_results/
+query*.json
