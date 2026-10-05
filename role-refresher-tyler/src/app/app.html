@@ -1,0 +1,55 @@
+<div class="shell">
+  <div class="shell-body">
+    <nav class="shell-sidenav">
+      <div class="shell-sidenav__brand">
+        <span class="brand-icon">⚡</span>
+        <span class="brand-title">Role Refresher</span>
+      </div>
+
+      <ul class="shell-sidenav__list">
+        <li>
+          <a routerLink="/" routerLinkActive="shell-sidenav__link--active" [routerLinkActiveOptions]="{ exact: true }" class="shell-sidenav__link">
+            <span class="nav-icon">🎯</span> Apply Changes Simulator
+          </a>
+        </li>
+        <li>
+          <a routerLink="/workflows" routerLinkActive="shell-sidenav__link--active" class="shell-sidenav__link">
+            <span class="nav-icon">🚀</span> Workflows
+          </a>
+        </li>
+        <li>
+          <a routerLink="/api-examples" routerLinkActive="shell-sidenav__link--active" class="shell-sidenav__link">
+            <span class="nav-icon">📡</span> SDK Reference
+          </a>
+        </li>
+      </ul>
+
+      <div class="shell-sidenav__footer">
+        <div class="plugin-status-badge">
+          <span class="status-indicator status-indicator--{{ status() }}"></span>
+          <span>Plugin: {{ status() }}</span>
+        </div>
+      </div>
+    </nav>
+
+    <main class="shell-content">
+      <header class="shell-content__header">
+        <div class="shell-content__header-left">
+          <h1 class="spds-h4">{{ title() }}</h1>
+          <span class="shell-subtitle">ISC Role Membership & "Apply Changes" Impact Auditor</span>
+        </div>
+        <div class="shell-content__meta">
+          <p-tag [value]="'status.' + status() | translate" [severity]="handshakeSeverity[status()]" />
+          @if (context(); as ctx) {
+            <span class="shell-content__context">
+              {{ ctx.tenant.org }} &middot; {{ ctx.user.displayName }}
+            </span>
+          }
+        </div>
+      </header>
+      <div class="shell-content__card">
+        <router-outlet />
+      </div>
+    </main>
+  </div>
+</div>
