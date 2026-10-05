@@ -27,7 +27,9 @@ export function parseCriteriaTree(
   const leaves: LeafCondition[] = [];
 
   function walk(n: RawCriteriaNode, p: string): CriteriaTreeNode {
-    if (BRANCH_OPS.has(n.operation)) {
+    const op = (n.operation || '').toUpperCase();
+
+    if (BRANCH_OPS.has(op)) {
       if (!n.children || n.children.length === 0) {
         warnings.push(`Branch node at path ${p} (${n.operation}) has no children.`);
       }
@@ -37,27 +39,28 @@ export function parseCriteriaTree(
       const children = (n.children ?? []).map((child, i) => walk(child, `${p}.${i}`));
       return {
         kind: 'branch',
-        operation: n.operation as 'AND' | 'OR',
+        operation: op as 'AND' | 'OR',
         path: p,
         children,
       };
     }
 
-    if (LEAF_OPS.has(n.operation)) {
+    if (LEAF_OPS.has(op)) {
       if (n.children && n.children.length > 0) {
         warnings.push(`Leaf node at path ${p} (${n.operation}) unexpectedly has children; ignoring them.`);
       }
       if (!n.key) {
         warnings.push(`Leaf node at path ${p} (${n.operation}) is missing a key; skipping.`);
-        return { kind: 'leaf', path: p, condition: emptyCondition(p, n.operation as LeafOperation) };
+        return { kind: 'leaf', path: p, condition: emptyCondition(p, op as LeafOperation) };
       }
-      // Live tenant responses have been observed to return `values: [...]`
-      // instead of the documented `stringValue` for leaf conditions. Prefer
-      // `stringValue` when present (matches the documented request/response
-      // schema), falling back to the first element of `values`.
-      const resolvedValue = n.stringValue ?? n.values?.[0] ?? null;
-      if (resolvedValue == null) {
-        warnings.push(`Leaf node at path ${p} (${n.operation}) is missing both stringValue and values.`);
+
+      // Collect all values if values: [...] has multiple items (e.g. "Singapore" OR "London")
+      const valuesList: string[] = (n.values && n.values.length > 0)
+        ? n.values
+        : (n.stringValue != null ? [n.stringValue] : []);
+
+      if (valuesList.length === 0) {
+        warnings.push(`Leaf node at path ${p} (${op}) is missing both stringValue and values.`);
       }
       if ((n.key.type === 'ACCOUNT' || n.key.type === 'ENTITLEMENT') && !n.key.sourceId) {
         warnings.push(
@@ -65,13 +68,37 @@ export function parseCriteriaTree(
         );
       }
 
+      // If multiple values exist (e.g. "Singapore OR London"), expand into an OR/AND branch
+      // so all values are evaluated and queried properly.
+      if (valuesList.length > 1) {
+        const branchOp = op === 'NOT_EQUALS' ? 'AND' : 'OR';
+        const children: CriteriaTreeNode[] = valuesList.map((val, idx) => {
+          const condition: LeafCondition = {
+            path: `${p}.${idx}`,
+            keyType: n.key!.type,
+            property: n.key!.property,
+            sourceId: n.key!.sourceId ?? null,
+            operation: op as LeafOperation,
+            value: val,
+          };
+          leaves.push(condition);
+          return { kind: 'leaf', path: `${p}.${idx}`, condition };
+        });
+        return {
+          kind: 'branch',
+          operation: branchOp,
+          path: p,
+          children,
+        };
+      }
+
       const condition: LeafCondition = {
         path: p,
         keyType: n.key.type,
         property: n.key.property,
         sourceId: n.key.sourceId ?? null,
-        operation: n.operation as LeafOperation,
-        value: resolvedValue ?? '',
+        operation: op as LeafOperation,
+        value: valuesList[0] ?? '',
       };
       leaves.push(condition);
       return { kind: 'leaf', path: p, condition };

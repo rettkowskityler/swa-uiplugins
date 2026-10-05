@@ -35,12 +35,12 @@ export function toEsClause(field: string, operation: LeafOperation, value: strin
  * identity attributes live under `attributes.*`.
  */
 export function identityEsField(property: string): string {
-  const stripped = property.replace(/^attribute\./, '');
+  const stripped = property.replace(/^attributes?\./i, '');
   const topLevelFields = new Set(['id', 'name', 'email', 'firstname', 'lastname', 'displayName']);
-  if (topLevelFields.has(stripped)) {
-    return stripped;
+  if (topLevelFields.has(stripped.toLowerCase())) {
+    return stripped.toLowerCase();
   }
-  return stripped.startsWith('attributes.') ? stripped : `attributes.${stripped}`;
+  return stripped.toLowerCase().startsWith('attributes.') ? stripped : `attributes.${stripped}`;
 }
 
 /** Builds the Elasticsearch query-string clause for an IDENTITY leaf condition. */

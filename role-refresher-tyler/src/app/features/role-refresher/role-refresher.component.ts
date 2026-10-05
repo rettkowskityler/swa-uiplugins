@@ -215,7 +215,30 @@ export class RoleRefresherComponent {
     this.error.set('');
 
     try {
-      const role = this.roles().find((r) => r.id === roleId);
+      // Fetch the latest fresh role details directly from /v3/roles/:id
+      // to avoid using stale cached criteria if the role was modified in the tenant.
+      let role = this.roles().find((r) => r.id === roleId);
+      try {
+        const freshRole = await this.plugin.get<any>(`/v3/roles/${roleId}`);
+        if (freshRole) {
+          const updatedRoleOption: RoleOption = {
+            id: freshRole.id,
+            name: freshRole.name,
+            description: freshRole.description,
+            enabled: freshRole.enabled ?? true,
+            membershipType: freshRole.membership?.type || 'STANDARD',
+            criteria: freshRole.membership?.criteria || null,
+            owner: freshRole.owner ? { id: freshRole.owner.id, name: freshRole.owner.name } : undefined,
+            accessProfilesCount: (freshRole.accessProfiles || []).length,
+            entitlementsCount: (freshRole.entitlements || []).length,
+          };
+          this.roles.update((list) => list.map((r) => (r.id === roleId ? updatedRoleOption : r)));
+          role = updatedRoleOption;
+        }
+      } catch (e) {
+        console.warn('Could not refetch latest role details, using cached option', e);
+      }
+
       if (!role) return;
 
       // Fetch currently assigned identities
@@ -525,8 +548,15 @@ function formatCriteriaSummary(node: any): string {
     return parts.join(` ${op} `);
   }
 
-  const prop = (node.key?.property || '').replace(/^attributes?\./, '');
+  const prop = (node.key?.property || '').replace(/^attributes?\./i, '');
   const type = node.key?.type || 'IDENTITY';
-  const val = node.stringValue ?? node.values?.[0] ?? '';
-  return `${type === 'ACCOUNT' ? 'Account.' : ''}${prop} ${op} "${val}"`;
+  const vals: string[] = (node.values && node.values.length > 0)
+    ? node.values
+    : (node.stringValue != null ? [node.stringValue] : []);
+
+  const valStr = vals.length > 1
+    ? `(${vals.map((v: string) => `"${v}"`).join(' OR ')})`
+    : `"${vals[0] ?? ''}"`;
+
+  return `${type === 'ACCOUNT' ? 'Account.' : ''}${prop} ${op} ${valStr}`;
 }
